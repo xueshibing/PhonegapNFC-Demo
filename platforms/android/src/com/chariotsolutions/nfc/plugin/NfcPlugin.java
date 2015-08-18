@@ -32,8 +32,10 @@ import android.nfc.tech.MifareClassic;
 import android.nfc.tech.MifareUltralight;
 import android.nfc.tech.Ndef;
 import android.nfc.tech.NdefFormatable;
+import android.nfc.tech.NfcF;
 import android.os.Parcelable;
 import android.util.Log;
+
 
 public class NfcPlugin extends CordovaPlugin implements NfcAdapter.OnNdefPushCompleteCallback {
     private static final String REGISTER_MIME_TYPE = "registerMimeType";
@@ -57,6 +59,7 @@ public class NfcPlugin extends CordovaPlugin implements NfcAdapter.OnNdefPushCom
     private static final String INIT = "init";
     private static final String WRITE_MIFARE ="writeMifare";
     private static final String READ_MIFARE = "readMifare";
+    private static final String INIT_NTAG213 = "initNTAG213";
 
     private static final String NDEF = "ndef";
     private static final String NDEF_MIME = "ndef-mime";
@@ -152,6 +155,8 @@ public class NfcPlugin extends CordovaPlugin implements NfcAdapter.OnNdefPushCom
             readMifare(data,callbackContext);
         } else if (action.equalsIgnoreCase(WRITE_MIFARE)) {
             writeMifare(data, callbackContext);
+        } else if (action.equalsIgnoreCase(INIT_NTAG213)) {
+            initNTAG213(data, callbackContext);
         } else if (action.equalsIgnoreCase(ENABLED)) {
             // status is checked before every call
             // if code made it here, NFC is enabled
@@ -165,6 +170,39 @@ public class NfcPlugin extends CordovaPlugin implements NfcAdapter.OnNdefPushCom
         return true;
     }
 
+    private void initNTAG213(JSONArray data, CallbackContext callbackContext) throws JSONException {
+        Tag tagFromIntent = savedIntent.getParcelableExtra(NfcAdapter.EXTRA_TAG);
+        MifareUltralight mc = MifareUltralight.get(tagFromIntent);
+        String content = "";
+        try {
+            mc.connect();
+            if(mc.getType() != MifareUltralight.TYPE_ULTRALIGHT_C){
+                callbackContext.error("Invalid chip");
+                return;
+            }
+            if (!authenticate(mc, data.getString(0))) {
+                callbackContext.error("Invalid Password");
+                return;
+            }
+            InitNTAG213 initChip = new InitNTAG213(mc,data.getString(0));
+            if(initChip.run()) {
+                callbackContext.success();
+            }else{
+                callbackContext.error("Init chip was failure");
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            callbackContext.error(e.getMessage());
+        } finally {
+            try {
+                mc.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+                callbackContext.error(e.getMessage());
+            }
+        }
+    }
+
     private String getNfcStatus() {
         NfcAdapter nfcAdapter = NfcAdapter.getDefaultAdapter(getActivity());
         if (nfcAdapter == null) {
@@ -176,6 +214,66 @@ public class NfcPlugin extends CordovaPlugin implements NfcAdapter.OnNdefPushCom
         }
     }
 
+    private static byte[] PACK =  new byte[]{(byte)0x33, (byte)0x33};
+    private static byte[] PWD = new byte[]{(byte) 0x1B, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF};
+
+    private boolean isUltralightC(MifareUltralight c){
+        return c.getType() == MifareUltralight.TYPE_ULTRALIGHT_C;
+    }
+
+
+    public static void sleep(int n){
+        try {
+            Log.d("Util.sleep",String.valueOf(n));
+            Thread.sleep(n); //do remove this line.
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public boolean validResponse(byte[] response) {
+        Log.d(TAG,Util.ByteArrayToHexString(response));
+        return (response[0] == (byte) 0x0 && response[1] == (byte) 0x0) ||
+                (response[0] == PACK[0] && response[1] == PACK[1]);
+    }
+
+    private boolean doAuthenticatePwd(MifareUltralight c,String password){
+        byte[] auth = new byte[]{(byte) 0x1B, (byte) 0x0, (byte) 0x0, (byte) 0x0, (byte) 0x0};
+        try {
+            if(password != null && !"".equals(password)) {
+                c.setTimeout(5000);
+                int l = Math.min(password.length(), 4);
+                byte[] p = password.substring(0, l).getBytes();
+                System.arraycopy(p,0,auth,1,l);
+                Log.d(TAG,Util.ByteArrayToHexString(auth));
+                byte[] response = c.transceive(auth);
+                if (validResponse(response) ) {
+                    return true;
+                }
+                sleep(500);
+            }
+            Log.d(TAG,Util.ByteArrayToHexString(PWD));
+            byte[] response = c.transceive(PWD);
+            if (validResponse(response) ) {
+                return true;
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    private boolean authenticate(MifareUltralight c, String password) {
+        if (isUltralightC(c)) {
+            Log.d(TAG, "Type: Ultralight C");
+            if (!doAuthenticatePwd(c, password)) {
+                return false;
+            }
+        } else {
+            Log.d(TAG, "Type: Ultralight");
+        }
+        return true;
+    }
 
     private void readMifare(JSONArray data, CallbackContext callbackContext) throws JSONException {
         Tag tagFromIntent = savedIntent.getParcelableExtra(NfcAdapter.EXTRA_TAG);
@@ -184,6 +282,10 @@ public class NfcPlugin extends CordovaPlugin implements NfcAdapter.OnNdefPushCom
         try {
             int block = data.getInt(0);
             mc.connect();
+            if (!authenticate(mc, data.getString(1))) {
+                callbackContext.error("Invalid Password");
+                return;
+            }
             byte[] response = mc.readPages(block);
             content = Util.dataToString(response).trim();
             callbackContext.success(content);
@@ -208,6 +310,10 @@ public class NfcPlugin extends CordovaPlugin implements NfcAdapter.OnNdefPushCom
             String content = data.getString(1);
             content = content == null ? "" : content;
             mc.connect();
+            if (!authenticate(mc, data.getString(2))) {
+                callbackContext.error("Invalid Password");
+                return;
+            }
             byte[] bytes = content.getBytes();
             for (int i = 0; i < 4; i++) {
                 int s = i * 4;

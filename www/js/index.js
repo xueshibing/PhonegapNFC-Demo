@@ -79,33 +79,39 @@ var app = {
         }
         var writeButton = document.getElementById("write_data");
         var writeInput = document.getElementById("write_data_input");
+        var blockInput = document.getElementById("data_block");
+        var passwordInput = document.getElementById("password_input");
+        var initNtagButton = document.getElementById("init_ntag");
+        initNtagButton.addEventListener('click', function(){
+          nfc.initNTAG213(passwordInput.value,_cb,_cb);
+        });
         var _cb = function(r){alert(JSON.stringify(r));};
         writeButton.addEventListener('click', function() { 
-          nfc.writeMifare(4,writeInput.value,_cb,_cb);
+          nfc.writeMifare(blockInput.value,writeInput.value,passwordInput.value,_cb,_cb);
         });
         var readButton = document.getElementById("read_data");
         readButton.addEventListener('click', function() { 
-          nfc.readMifare(4,_cb,_cb);
+          nfc.readMifare(blockInput.value,passwordInput.value,_cb,_cb);
         });
         var writeFalseButton = document.getElementById("write_false");
         writeFalseButton.addEventListener('click', function() { 
-          nfc.writeMifare(4,false,_cb,_cb);
+          nfc.writeMifare(blockInput.value,false,passwordInput.value,_cb,_cb);
         });
         var writeTrueButton = document.getElementById("write_true");
         writeTrueButton.addEventListener('click', function() { 
-          nfc.writeMifare(4,true,_cb,_cb);
+          nfc.writeMifare(blockInput.value,true,passwordInput.value,_cb,_cb);
         });
         var writeIntegerButton = document.getElementById("write_integer");
         writeIntegerButton.addEventListener('click', function() { 
-          nfc.writeMifare(4,1,_cb,_cb);
+          nfc.writeMifare(blockInput.value,1,passwordInput.value,_cb,_cb);
         });
         var writeNullButton = document.getElementById("write_null");
         writeNullButton.addEventListener('click', function() { 
-          nfc.writeMifare(4,null,_cb,_cb);
+          nfc.writeMifare(blockInput.value,null,passwordInput.value,_cb,_cb);
         });
         var writeUndefinedButton = document.getElementById("write_undefined");
         writeUndefinedButton.addEventListener('click', function() { 
-          nfc.writeMifare(4,undefined,_cb,_cb);
+          nfc.writeMifare(blockInput.value,undefined,passwordInput.value,_cb,_cb);
         });
 
         console.log('Received Event: ' + id);
