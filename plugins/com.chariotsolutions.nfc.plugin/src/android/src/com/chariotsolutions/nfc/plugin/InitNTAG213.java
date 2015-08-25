@@ -22,11 +22,8 @@ public class InitNTAG213 {
         byte[] type = new byte[]{(byte) 0xA2, (byte) 0x2A, (byte) 0x80, (byte) 0x00, (byte) 0x00, (byte) 0x00};
         byte[] pwd = new byte[]{(byte) 0xA2, (byte) 0x2B, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF};
         if (this.password != null && !"".equals(this.password)) {
-            byte[] auth = new byte[]{(byte) 0x1B, (byte) 0x0, (byte) 0x0, (byte) 0x0, (byte) 0x0};
-            int l = Math.min(this.password.length(), 4);
-            byte[] p = this.password.substring(0, l).getBytes();
-            System.arraycopy(p,0,auth,1,l);
-            System.arraycopy(auth,0,pwd,1,5);
+            byte[] auth = Util.convertHexAsciiToByteArray(this.password,4);
+            System.arraycopy(auth,0,pwd,2,4);
         }
         byte[] pack = new byte[]{(byte) 0xA2, (byte) 0x2C, (byte) 0x33, (byte) 0x33, (byte) 0x00, (byte) 0x00};
 

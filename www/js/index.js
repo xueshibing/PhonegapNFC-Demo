@@ -81,9 +81,10 @@ var app = {
         var writeInput = document.getElementById("write_data_input");
         var blockInput = document.getElementById("data_block");
         var passwordInput = document.getElementById("password_input");
+        var oldPasswordInput = document.getElementById("old_password_input");
         var initNtagButton = document.getElementById("init_ntag");
         initNtagButton.addEventListener('click', function(){
-          nfc.initNTAG213(passwordInput.value,_cb,_cb);
+          nfc.initNTAG213(oldPasswordInput.value,passwordInput.value,_cb,_cb);
         });
         var _cb = function(r){alert(JSON.stringify(r));};
         writeButton.addEventListener('click', function() { 

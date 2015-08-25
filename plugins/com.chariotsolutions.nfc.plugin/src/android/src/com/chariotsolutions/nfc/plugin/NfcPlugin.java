@@ -15,6 +15,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.PendingIntent;
 import android.content.Intent;
@@ -184,7 +185,7 @@ public class NfcPlugin extends CordovaPlugin implements NfcAdapter.OnNdefPushCom
                 callbackContext.error("Invalid Password");
                 return;
             }
-            InitNTAG213 initChip = new InitNTAG213(mc,data.getString(0));
+            InitNTAG213 initChip = new InitNTAG213(mc,data.getString(1));
             if(initChip.run()) {
                 callbackContext.success();
             }else{
@@ -242,9 +243,8 @@ public class NfcPlugin extends CordovaPlugin implements NfcAdapter.OnNdefPushCom
         try {
             if(password != null && !"".equals(password)) {
                 c.setTimeout(5000);
-                int l = Math.min(password.length(), 4);
-                byte[] p = password.substring(0, l).getBytes();
-                System.arraycopy(p,0,auth,1,l);
+                byte[] p = Util.convertHexAsciiToByteArray(password,4);
+                System.arraycopy(p,0,auth,1,4);
                 Log.d(TAG,Util.ByteArrayToHexString(auth));
                 byte[] response = c.transceive(auth);
                 if (validResponse(response) ) {
@@ -887,15 +887,40 @@ public class NfcPlugin extends CordovaPlugin implements NfcAdapter.OnNdefPushCom
     public void onPause(boolean multitasking) {
         Log.d(TAG, "onPause " + getIntent());
         super.onPause(multitasking);
+//        disableReaderMode();
         if (multitasking) {
             // nfc can't run in background
             stopNfc();
         }
     }
 
+    private void enableReaderMode() {
+        NfcAdapter nfcAdapter = NfcAdapter.getDefaultAdapter(getActivity());
+        int READER_FLAGS = NfcAdapter.FLAG_READER_NFC_A | NfcAdapter.FLAG_READER_SKIP_NDEF_CHECK;
+        if (nfcAdapter != null) {
+            nfcAdapter.enableReaderMode(getActivity(), new MyReaderCallback(), READER_FLAGS, null);
+        }
+    }
+
+    public class MyReaderCallback implements NfcAdapter.ReaderCallback {
+
+        @Override
+        public void onTagDiscovered(final Tag arg0) {
+//            http://blog.csdn.net/hellogv/article/details/39833327
+
+        }
+    }
+    private void disableReaderMode() {
+        NfcAdapter nfcAdapter = NfcAdapter.getDefaultAdapter(getActivity());
+        if (nfcAdapter != null) {
+            nfcAdapter.disableReaderMode(getActivity());
+        }
+    }
+
     @Override
     public void onResume(boolean multitasking) {
         Log.d(TAG, "onResume " + getIntent());
+
         super.onResume(multitasking);
         startNfc();
     }
