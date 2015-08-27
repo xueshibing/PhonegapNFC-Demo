@@ -90,6 +90,10 @@ var app = {
         writeButton.addEventListener('click', function() { 
           nfc.writeMifare(blockInput.value,writeInput.value,passwordInput.value,_cb,_cb);
         });
+        var readChipType = document.getElementById("read_chip_type");
+        readChipType.addEventListener('click', function() { 
+          nfc.readChipType(_cb,_cb);
+        });
         var readButton = document.getElementById("read_data");
         readButton.addEventListener('click', function() { 
           nfc.readMifare(blockInput.value,passwordInput.value,_cb,_cb);

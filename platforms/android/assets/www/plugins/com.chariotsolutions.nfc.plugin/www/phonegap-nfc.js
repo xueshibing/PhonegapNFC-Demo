@@ -482,6 +482,9 @@ var nfc = {
         document.removeEventListener("ndef", callback, false);
         cordova.exec(win, fail, "NfcPlugin", "removeNdef", []);
     },
+    readChipType: function (win, fail) {
+        cordova.exec(win, fail, "NfcPlugin", "readChipType", []);
+    },
     hasHCE: function (win, fail) {
         cordova.exec(win, fail, "NfcPlugin", "hasHCE", []);
     },

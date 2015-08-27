@@ -60,6 +60,7 @@ public class NfcPlugin extends CordovaPlugin implements NfcAdapter.OnNdefPushCom
     private static final String INIT = "init";
     private static final String WRITE_MIFARE ="writeMifare";
     private static final String READ_MIFARE = "readMifare";
+    private static final String READ_CHIP_TYPE = "readChipType";
     private static final String INIT_NTAG213 = "initNTAG213";
 
     private static final String NDEF = "ndef";
@@ -158,6 +159,8 @@ public class NfcPlugin extends CordovaPlugin implements NfcAdapter.OnNdefPushCom
             writeMifare(data, callbackContext);
         } else if (action.equalsIgnoreCase(INIT_NTAG213)) {
             initNTAG213(data, callbackContext);
+        } else if (action.equalsIgnoreCase(READ_CHIP_TYPE)) {
+            readChipType(callbackContext);
         } else if (action.equalsIgnoreCase(ENABLED)) {
             // status is checked before every call
             // if code made it here, NFC is enabled
@@ -169,6 +172,29 @@ public class NfcPlugin extends CordovaPlugin implements NfcAdapter.OnNdefPushCom
         }
 
         return true;
+    }
+
+    private void readChipType(CallbackContext callbackContext) {
+        Tag tagFromIntent = savedIntent.getParcelableExtra(NfcAdapter.EXTRA_TAG);
+        MifareUltralight mc = MifareUltralight.get(tagFromIntent);
+        try {
+            mc.connect();
+            if(mc.getType() == MifareUltralight.TYPE_ULTRALIGHT_C) {
+                callbackContext.success("mifare_ultralight_c");
+            }else{
+                callbackContext.success("mifare_ultralight");
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            callbackContext.error(e.getMessage());
+        } finally {
+            try {
+                mc.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+                callbackContext.error(e.getMessage());
+            }
+        }
     }
 
     private void initNTAG213(JSONArray data, CallbackContext callbackContext) throws JSONException {
